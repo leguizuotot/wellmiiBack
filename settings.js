@@ -55,7 +55,7 @@ exports.mail = {
             service: 'gmail',
             auth: {
                 user: 'mjaquotot@gmail.com',
-                pass: 'fdsdsfsdfdsf'
+                pass: 'Marian01986'
             }
         },
         mailOptions : {

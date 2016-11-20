@@ -518,7 +518,7 @@ router.post('/refresh/ownAccessToken', function(req, res) {
             console.log(JSON.stringify('#Backend_msg decoded: ' + decoded));
             if(err || decoded.userId == null){
                 res.writeHead(401, {'Content-Type':'application/json'});
-                res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', validationToken} ));
+                res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', ownAccessToken} ));
                 res.end();
             }
             else {
