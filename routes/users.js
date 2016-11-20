@@ -492,7 +492,7 @@ router.post('/login/local', function(req, res) {
 	}
 });
 
-router.get('/refresh/ownAccessToken', function(req, res) {
+router.post('/refresh/ownAccessToken', function(req, res) {
 
     console.log('#Backend_msg Get query: ' + JSON.stringify(req.query));
 
