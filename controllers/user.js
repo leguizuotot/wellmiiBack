@@ -906,7 +906,7 @@ module.exports.refreshOwnAccessToken = function(userId, req, res) {
 	console.log('#Backend_msg userId: ' + userId);
 
 
-	user.findUserByuserId(userId, function (profile, err){
+	user.findUserByUserId(userId, function (profile, err){
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
