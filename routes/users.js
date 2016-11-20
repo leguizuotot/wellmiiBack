@@ -494,9 +494,9 @@ router.post('/login/local', function(req, res) {
 
 router.post('/refresh/ownAccessToken', function(req, res) {
 
-    console.log('#Backend_msg Get query: ' + JSON.stringify(req.query));
+    console.log('#Backend_msg Post body: ' + JSON.stringify(req.body));
 
-    var ownAccessToken = req.query.ownAccessToken;
+    var ownAccessToken = req.body.ownAccessToken;
 
     //VALIDATES FIELD FORMATING
     req.checkBody('ownAccessToken', 'ownAccessToken is required').notEmpty();
