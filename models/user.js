@@ -332,7 +332,7 @@ module.exports.mergeAccountsByFacebook = function(userFacebook, actualProfile, p
 		.input('transferedTo', sqlDB.NVarChar, actualProfile.userId)
 		.query(	'UPDATE [dbo].[zzz_app_dm_user] ' +
 				'SET 	lastModified = convert(varchar(24), getdate(), 121), ' +
-				' 		isActive = 0 ' +
+				' 		isActive = 0 ,' +
 				' 		transferedTo = @transferedTo ' +
 				'WHERE userId = @userId'
 				)
@@ -526,7 +526,7 @@ module.exports.mergeAccountsByGoogle = function(userGoogle, actualProfile, previ
 		.input('transferedTo', sqlDB.NVarChar, actualProfile.userId)
 		.query(	'UPDATE [dbo].[zzz_app_dm_user] ' +
 				'SET 	lastModified = convert(varchar(24), getdate(), 121), ' +
-				' 		isActive = 0 ' +
+				' 		isActive = 0 ,' +
 				' 		transferedTo = @transferedTo ' +
 				'WHERE userId = @userId'
 				)
@@ -730,7 +730,7 @@ module.exports.mergeAccountsByTwitter = function(userTwitter, actualProfile, pre
 		.input('transferedTo', sqlDB.NVarChar, actualProfile.userId)
 		.query(	'UPDATE [dbo].[zzz_app_dm_user] ' +
 				'SET 	lastModified = convert(varchar(24), getdate(), 121), ' +
-				' 		isActive = 0 ' +
+				' 		isActive = 0 ,' +
 				' 		transferedTo = @transferedTo ' +
 				'WHERE userId = @userId'
 				)
