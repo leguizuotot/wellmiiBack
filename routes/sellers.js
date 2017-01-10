@@ -4,7 +4,7 @@ var passport = require('passport');
 var jwt = require('jsonwebtoken');
 
 var settings = require('../settings');
-var user = require('../controllers/user')
+var seller = require('../controllers/seller')
 
 //***********************************************************************
 /************************* HTTP Status Codes ****************************
@@ -22,7 +22,7 @@ http://www.restapitutorial.com/httpstatuscodes.html
 // ************************ Facebook auth routes ************************
 
 router.get('/auth/facebook',    
-    passport.authenticate('facebook', { scope: ['email', 'user_birthday', 'user_likes'] })
+    passport.authenticate('facebook', { scope: ['email', 'seller_birthday', 'seller_likes'] })
 );
 
 router.get('/auth/facebook/callback', 
@@ -30,7 +30,7 @@ router.get('/auth/facebook/callback',
     function(req, res) {
         console.log(req.user);
 
-        var userFacebook = {
+        var sellerFacebook = {
         
             facebookId: req.user.profile.id,
             facebookToken: req.user.accessToken,
@@ -38,7 +38,7 @@ router.get('/auth/facebook/callback',
             facebookPicture: 'https://graph.facebook.com/' + req.user.profile.id + '/picture?type=square'
         }
 
-        var ownAccessFacebook = jwt.sign({ userFacebook: userFacebook}, settings.secretKeys.jwt, { expiresIn: 60000 });
+        var ownAccessFacebook = jwt.sign({ sellerFacebook: sellerFacebook}, settings.secretKeys.jwt, { expiresIn: 60000 });
 
         res.cookie('authFacebook', ownAccessFacebook, { maxAge: 60000000, httpOnly: true, overwrite: true/*, secure: true*/}); // con secure TRUE el cookie manager de react no lee la cookie
         res.end();
@@ -75,22 +75,22 @@ router.post('/login/facebook', function(req, res) {
     else{
         if(ownAccessToken != null && ownAccessToken != '') {
             jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userId == null) {
+                if(err || decoded.sellerId == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessToken} ));
                     res.end();
                 }
                 else { //YA ESTABA LOGADO Y HAY QUE LINKAR CUENTAS SI TODO ESTA OK
-                    var userId = decoded.userId;
+                    var sellerId = decoded.sellerId;
                     jwt.verify(ownAccessFacebook, settings.secretKeys.jwt, function(err, decoded) {
-                        if(err || decoded.userFacebook == null) {
+                        if(err || decoded.sellerFacebook == null) {
                             res.writeHead(401, {'Content-Type':'application/json'});
                             res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessFacebook} ));
                             res.end();
                         }
                         else{
-                            console.log(JSON.stringify('#Backend_msg decoded: ' + userId));
-                            user.loginLinkingFacebook(decoded.userFacebook, userId, req, res);
+                            console.log(JSON.stringify('#Backend_msg decoded: ' + sellerId));
+                            seller.loginLinkingFacebook(decoded.sellerFacebook, sellerId, req, res);
                         }
                     });
                 }
@@ -98,14 +98,14 @@ router.post('/login/facebook', function(req, res) {
         }
         else{ //NO ESTABA LOGADO SE LOGA SI YA EXISTIA USUARIO ACTIVO Y EN CASO CONTRARIO CREA EL USUARIO
             jwt.verify(ownAccessFacebook, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userFacebook == null) {
+                if(err || decoded.sellerFacebook == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessFacebook} ));
                     res.end();
                 }
                 else{
-                    console.log('userFacebook: ' + decoded.userFacebook);
-                    user.loginFacebook(decoded.userFacebook, req, res);
+                    console.log('sellerFacebook: ' + decoded.sellerFacebook);
+                    seller.loginFacebook(decoded.sellerFacebook, req, res);
                 }
             });
         }
@@ -123,14 +123,14 @@ router.get('/auth/google/callback',
     passport.authenticate('google', {failureRedirect: '/auth/google' }),
     function(req, res) {
         console.log(req.user);
-        var userGoogle = {
+        var sellerGoogle = {
             googleToken: req.user.token,
             googleId: req.user.profile.id,
             googleDisplayName: req.user.profile.displayName,
             googleGender: req.user.profile.gender
         }
 
-        var ownAccessGoogle = jwt.sign({userGoogle: userGoogle}, settings.secretKeys.jwt, { expiresIn: 60000 });
+        var ownAccessGoogle = jwt.sign({sellerGoogle: sellerGoogle}, settings.secretKeys.jwt, { expiresIn: 60000 });
 
         res.cookie('authGoogle', ownAccessGoogle, { maxAge: 60000000, httpOnly: true, overwrite: true /*, secure: true*/}); // con secure TRUE el cookie manager de react no lee la cookie
         res.end();
@@ -167,22 +167,22 @@ router.post('/login/google', function(req, res) {
     else{
         if(ownAccessToken != null && ownAccessToken != '') {
             jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userId == null) {
+                if(err || decoded.sellerId == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessToken} ));
                     res.end();
                 }
                 else { //YA ESTABA LOGADO Y HAY QUE LINKAR CUENTAS SI TODO ESTA OK
-                    var userId = decoded.userId;
+                    var sellerId = decoded.sellerId;
                     jwt.verify(ownAccessGoogle, settings.secretKeys.jwt, function(err, decoded) {
-                        if(err || decoded.userGoogle == null) {
+                        if(err || decoded.sellerGoogle == null) {
                             res.writeHead(401, {'Content-Type':'application/json'});
                             res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessGoogle} ));
                             res.end();
                         }
                         else{
-                            console.log(JSON.stringify('#Backend_msg decoded: ' + userId));
-                            user.loginLinkingGoogle(decoded.userGoogle, userId, req, res);
+                            console.log(JSON.stringify('#Backend_msg decoded: ' + sellerId));
+                            seller.loginLinkingGoogle(decoded.sellerGoogle, sellerId, req, res);
                         }
                     });
                 }
@@ -190,14 +190,14 @@ router.post('/login/google', function(req, res) {
         }
         else{ //NO ESTABA LOGADO SE LOGA SI YA EXISTIA USUARIO ACTIVO Y EN CASO CONTRARIO CREA EL USUARIO
             jwt.verify(ownAccessGoogle, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userGoogle == null) {
+                if(err || decoded.sellerGoogle == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessGoogle} ));
                     res.end();
                 }
                 else{
-                    console.log('userGoogle: ' + decoded.userGoogle);
-                    user.loginGoogle(decoded.userGoogle, req, res);
+                    console.log('sellerGoogle: ' + decoded.sellerGoogle);
+                    seller.loginGoogle(decoded.sellerGoogle, req, res);
                 }
             });
         }
@@ -214,7 +214,7 @@ router.get('/auth/twitter/callback',
     function(req, res) {
         console.log(req.user.profile._json);
         
-        var userTwitter = {
+        var sellerTwitter = {
 
             twitterId: req.user.profile._json.id,
             twitterName: req.user.profile._json.name,
@@ -227,9 +227,9 @@ router.get('/auth/twitter/callback',
             twitterLang: req.user.profile._json.lang,
             twitterProfile_image_url_https: req.user.profile._json.profile_image_url_https
         }
-        console.log(userTwitter);
+        console.log(sellerTwitter);
 
-        var ownAccessTwitter = jwt.sign({userTwitter: userTwitter}, settings.secretKeys.jwt, { expiresIn: 60000 });
+        var ownAccessTwitter = jwt.sign({sellerTwitter: sellerTwitter}, settings.secretKeys.jwt, { expiresIn: 60000 });
 
         res.cookie('authTwitter', ownAccessTwitter, { maxAge: 60000000, httpOnly: true, overwrite: true /*, secure: true*/}); // con secure TRUE el cookie manager de react no lee la cookie
         res.end();
@@ -266,22 +266,22 @@ router.post('/login/twitter', function(req, res) {
     else{
         if(ownAccessToken != null && ownAccessToken != '') {
             jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userId == null) {
+                if(err || decoded.sellerId == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessToken} ));
                     res.end();
                 }
                 else { //YA ESTABA LOGADO Y HAY QUE LINKAR CUENTAS SI TODO ESTA OK
-                    var userId = decoded.userId;
+                    var sellerId = decoded.sellerId;
                     jwt.verify(ownAccessTwitter, settings.secretKeys.jwt, function(err, decoded) {
-                        if(err || decoded.userTwitter == null) {
+                        if(err || decoded.sellerTwitter == null) {
                             res.writeHead(401, {'Content-Type':'application/json'});
                             res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessTwitter} ));
                             res.end();
                         }
                         else{
-                            console.log(JSON.stringify('#Backend_msg decoded: ' + userId));
-                            user.loginLinkingTwitter(decoded.userTwitter, userId, req, res);
+                            console.log(JSON.stringify('#Backend_msg decoded: ' + sellerId));
+                            seller.loginLinkingTwitter(decoded.sellerTwitter, sellerId, req, res);
                         }
                     });
                 }
@@ -289,14 +289,14 @@ router.post('/login/twitter', function(req, res) {
         }
         else{ //NO ESTABA LOGADO SE LOGA SI YA EXISTIA USUARIO ACTIVO Y EN CASO CONTRARIO CREA EL USUARIO
             jwt.verify(ownAccessTwitter, settings.secretKeys.jwt, function(err, decoded) {
-                if(err || decoded.userTwitter == null) {
+                if(err || decoded.sellerTwitter == null) {
                     res.writeHead(401, {'Content-Type':'application/json'});
                     res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid token or token has expired', ownAccessTwitter} ));
                     res.end();
                 }
                 else{
-                    console.log('userTwitter: ' + decoded.userTwitter);
-                    user.loginTwitter(decoded.userTwitter, req, res);
+                    console.log('sellerTwitter: ' + decoded.sellerTwitter);
+                    seller.loginTwitter(decoded.sellerTwitter, req, res);
                 }
             });
         }
@@ -338,7 +338,7 @@ router.post('/register/local', function(req, res) {
 		res.end();
  	}
  	else {
-		user.registerWithEmail(email, password, req, res);
+		seller.registerWithEmail(email, password, req, res);
 	}
 });
 
@@ -347,10 +347,11 @@ router.get('/register/getEmailValidated', function(req, res) {
     console.log('#Backend_msg Get query: ' + JSON.stringify(req.query));
 
     var validationToken = req.query.validationToken;
+    console.log('#Backend_msg Get validationToken: ' + validationToken);
 
     //SANITAZES STRING FIELDS
-    req.sanitize('validationToken').escape();
-    req.sanitize('validationToken').trim();
+    //req.sanitize('validationToken').escape();
+    //req.sanitize('validationToken').trim();
 
     var err = req.validationErrors();
 
@@ -362,14 +363,14 @@ router.get('/register/getEmailValidated', function(req, res) {
     }
     else {
         jwt.verify(validationToken, settings.secretKeys.jwt, function(err, decoded) {
-            console.log(JSON.stringify('#Backend_msg decoded: ' + decoded));
+            console.log(JSON.stringify('#Backend_msg decoded: ' + JSON.stringify(decoded)));
             if(err || decoded.email == null){
                 res.writeHead(401, {'Content-Type':'application/json'});
                 res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', validationToken} ));
                 res.end();
             }
             else {
-                user.validateLocalEmail(decoded.email, req, res);
+                seller.validateLocalEmail(decoded.email, req, res);
             }
         });      
     }
@@ -398,7 +399,7 @@ router.post('/register/local/requestMailActivationReminder', function(req, res) 
         res.end();
     }
     else {
-        user.sendValidationEmail(email, req, res);
+        seller.sendValidationEmail(email, req, res);
     }
 });
 
@@ -424,7 +425,7 @@ router.post('/register/local/forgotPassword', function(req, res) {
         res.end();
     }
     else {
-        user.resetPasswordInstructions(email, req, res);
+        seller.resetPasswordInstructions(email, req, res);
     }
 });
 
@@ -455,7 +456,7 @@ router.get('/register/local/getNewPassword', function(req, res) {
                 res.end();
             }
             else {
-                user.setNewPassword(decoded.email, req, res);
+                seller.setNewPassword(decoded.email, req, res);
             }
         });      
     } 
@@ -488,7 +489,7 @@ router.post('/login/local', function(req, res) {
 		res.end();
  	}
  	else {
-		user.loginLocal(email, password, req, res);
+		seller.loginLocal(email, password, req, res);
 	}
 });
 
@@ -516,29 +517,28 @@ router.post('/refresh/ownAccessToken', function(req, res) {
     else {
         jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
             console.log(JSON.stringify('#Backend_msg decoded: ' + decoded));
-            if(err || decoded.userId == null){
+            if(err || decoded.sellerId == null){
                 res.writeHead(401, {'Content-Type':'application/json'});
                 res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', ownAccessToken} ));
                 res.end();
             }
             else {
-                user.refreshOwnAccessToken(decoded.userId, req, res);
+                seller.refreshOwnAccessToken(decoded.sellerId, req, res);
             }
         });      
     } 
 });
 
-
 // para poder asocar al usuario una cuenta de stripe
 
-router.post('/getStripeCustomerAccount', function(req, res) {
+router.post('/getStripeManagedAccount', function(req, res) {
 
     console.log('#Backend_msg Post body: ' + JSON.stringify(req.body));
 
     var ownAccessToken = req.sanitize('ownAccessToken').escape();
 
     //VALIDATES FIELD FORMATING
-    req.checkBody('ownAccessToken', 'userId is required').notEmpty(); 
+    req.checkBody('ownAccessToken', 'ownAccessToken is required').notEmpty(); 
  
     var err = req.validationErrors();
 
@@ -551,48 +551,13 @@ router.post('/getStripeCustomerAccount', function(req, res) {
     else {
         jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
             console.log(JSON.stringify('#Backend_msg decoded: ' + decoded));
-            if(err || decoded.userId == null){
+            if(err || decoded.sellerId == null){
                 res.writeHead(401, {'Content-Type':'application/json'});
                 res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', ownAccessToken} ));
                 res.end();
             }
             else {
-                user.getStripeCustomerAccount(decoded.userId, req, res);
-            }
-        });      
-    } 
-});
-
-
-router.post('/addStripeSource', function(req, res) {
-
-    console.log('#Backend_msg Post body: ' + JSON.stringify(req.body));
-
-    var ownAccessToken = req.sanitize('ownAccessToken').escape();
-    var stripeSource = req.sanitize('stripeSource').escape();
-
-    //VALIDATES FIELD FORMATING
-    req.checkBody('ownAccessToken', 'userId is required').notEmpty(); 
-    req.checkBody('stripeSource', 'stripeSource is required').notEmpty(); 
- 
-    var err = req.validationErrors();
-
-    if(err){
-        console.log(JSON.stringify( {status: 400, statusDescription: 'Error, Invalid parameters', err} ));
-        res.writeHead(400, {'Content-Type':'application/json'});
-        res.write(JSON.stringify( {status: 400, statusDescription: 'Error, Invalid parameters', err} ));
-        res.end();
-    }
-    else {
-        jwt.verify(ownAccessToken, settings.secretKeys.jwt, function(err, decoded) {
-            console.log(JSON.stringify('#Backend_msg decoded: ' + decoded));
-            if(err || decoded.userId == null){
-                res.writeHead(401, {'Content-Type':'application/json'});
-                res.write(JSON.stringify( {status: 401, statusDescription: 'Unauthorized, invalid Token or token has expired', ownAccessToken} ));
-                res.end();
-            }
-            else {
-                user.addStripeSource(decoded.userId, stripeSource, req, res);
+                seller.getStripeManagedAccount(decoded.sellerId, req, res);
             }
         });      
     } 
@@ -601,5 +566,3 @@ router.post('/addStripeSource', function(req, res) {
 // **********************************************************************
 // **********************************************************************
 module.exports = router;
-
-

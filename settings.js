@@ -10,22 +10,38 @@ exports.dbConfigMsSQL = {
 	}	
 }
 
+exports.app = {
+    platformTax: 0.22
+}
+
 exports.webPORT = {
 	port: 3000
 }
 
 exports.domains = {
-    home: 'www.losbrezos.xyz'
+    home: 'localhost'
 }
 
 exports.secretKeys = {
 
 	expressSession: '0OH0.rLPUIP7diFcppXAk0NPtAT_',
-	jwt: 'I6pXVCJ9.eyJmYWN_Ym9va0ljoi',
-	stripe: 'sk_test_1A0VMIVpuhkooE0s30IXCwf9',
-	paypal: ''
+	jwt: 'I6pXVCJ9.eyJmYWN_Ym9va0ljoi'
     
 }
+
+exports.stripe = {
+
+    //testSecretKey: 'sk_test_1A0VMIVpuhkooE0s30IXCwf9',
+    //testPublishableKey: 'pk_test_hRKBXiluCqz8NKe8FesegGPx',
+    //LiveSecretKey: 'sk_live_1CGOcyoPBcOQ72tJbP2uDmCJ',
+    //LivePublishableKey: 'pk_live_fny8XUWmQwGzpQLkuuSfVipQ',
+    secretKey: 'sk_test_1A0VMIVpuhkooE0s30IXCwf9',
+    publishableKey: 'pk_test_hRKBXiluCqz8NKe8FesegGPx',
+    appCollectingFee: 0.085,
+    stripeFixedFee: 0.25
+    
+}
+
 
 exports.Auth = {
 

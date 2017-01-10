@@ -12,6 +12,9 @@ email				VARCHAR(250),
 emailVerified		VARCHAR(250),
 hashPassword		VARCHAR(250),
 
+-- stripe ustomer
+StripeCustomer		VARCHAR(250),
+
 -- facebook fields
 facebookId			VARCHAR(250),
 facebookToken		VARCHAR(250),

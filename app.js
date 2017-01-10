@@ -17,7 +17,9 @@ var GitHubStrategy = require('passport-github2').Strategy;
 var settings = require('./settings');
 
 var users = require('./routes/users');
+var sellers = require('./routes/sellers');
 var stripe = require('./routes/stripe');
+var services = require('./routes/services');
 
 // ***                PASSPORT STRATEGIES                             ***
 //***********************************************************************
@@ -137,7 +139,9 @@ server.use(expressValidator({
 // ************************************ ROUTES *************************
 
 server.use('/users', users);
+server.use('/sellers', sellers);
 server.use('/stripe', stripe);
+server.use('/services', services);
 
 /*
 server.use('/', function(req,res){

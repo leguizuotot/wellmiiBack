@@ -4,10 +4,11 @@ var jwt = require('jsonwebtoken');
 var nodemailer = require('nodemailer');
 
 var settings = require('../settings');
-// controllers
 var stripeOwn = require ('./stripe');
-// models
-var user = require ('../models/user');
+//models
+var seller = require ('../models/seller');
+
+
 
 //***********************************************************************
 //************************* HTTP Status Codes ***************************
@@ -24,45 +25,45 @@ http://www.restapitutorial.com/httpstatuscodes.html
 //***********************************************************************
 
 function errMessage(res, err) {
-	console.log(JSON.stringify({status: 500, statusDescription: '500 Internal Server Error', err} ))
+	console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err}]))
 	res.writeHead(500, {'Content-Type':'application/json'});
-	res.write(JSON.stringify({status: 500, statusDescription: '500 Internal Server Error', err} ));
+	res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err}]));
 	res.end();
 }
 
-function returnUser(res, userId) {
+function returnSeller(res, sellerId) {
 
-	user.findUserByUserId(userId, function (err, profile) {
+	seller.findSellerBysellerId(sellerId, function (err, profile) {
 		if(err) {
 			errMessage(res, err);
 		}
 		else{
 			if (Object.keys(profile).length == 1) {
-				var ownAccessToken = jwt.sign({ userId:  profile[0].userId}, settings.secretKeys.jwt);
-				if (profile[0].stripeCustomer != null) {
-					stripeOwn.retrieveCustomer(profile[0].stripeCustomer,  function (err, customer) {
+				var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+				if (profile[0].stripeManagedAccount != null) {
+					stripeOwn.retrieveAccount(profile[0].stripeCustomer,  function (err, account) {
 						if(err){
 							errMessage(res, err);
 						}
 						else{
-							console.log(JSON.stringify({status: 200, statusDescription: 'Succeeded', user: {ownAccessToken, profile, stripeProfile: customer} } ));
+							console.log(JSON.stringify({status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile, stripeProfile: account} } ));
 							res.writeHead(200, {'Content-Type':'application/json'});
-							res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', user: {ownAccessToken, profile, stripeProfile: customer} } ));
+							res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile, stripeProfile: account} } ));
 							res.end();
 						}
 					});
 				}
 				else{
-					console.log(JSON.stringify({status: 200, statusDescription: 'Succeeded', user: {ownAccessToken, profile, stripeProfile: null} } ));
+					console.log(JSON.stringify({status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile, stripeProfile: null} } ));
 					res.writeHead(200, {'Content-Type':'application/json'});
-					res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', user: {ownAccessToken, profile, stripeProfile: null} } ));
+					res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile, stripeProfile: null} } ));
 					res.end();
 				}
 			}
 			else{
-				console.log(JSON.stringify( {status: 400, statusDescription: 'user not found'} ));
+				console.log(JSON.stringify( {status: 400, statusDescription: 'Seller not found'} ));
 				res.writeHead(400, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 400, statusDescription: 'user not found'} ));
+				res.write(JSON.stringify( {status: 400, statusDescription: 'Seller not found'} ));
 				res.end();
 			}
 		}		
@@ -70,13 +71,13 @@ function returnUser(res, userId) {
 }
 
 //***********************************************************************
-//************************* Register a new user *************************
-// creates an account for the new user and links the taxId of the reference used for login. It returns the user ownAccessToken, profile and linked TaxIds
+//************************* Register a new seller *************************
+// creates an account for the new seller and links the taxId of the reference used for login. It returns the seller ownAccessToken, profile and linked TaxIds
 
 module.exports.registerWithEmail = function(email, password, req, res) {	
 	console.log('#Backend_msg module.exports.registerWithEmail controller called');
 
-	user.findUserByEmail(email, function (err, searchedProfile){
+	seller.findSellerByEmail(email, function (err, searchedProfile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -90,13 +91,13 @@ module.exports.registerWithEmail = function(email, password, req, res) {
 				res.end();
 			}
 			else{
-				user.createUserWithEmail(email, password, function (err, newProfile){
+				seller.createSellerWithEmail(email, password, function (err, newProfile) {
 					if (err) {
 						errMessage(res, err);
 					}
 					else{
 						// SAME CODE AS IN MODULE module.exports.sendValidationEmail = function(email, req, res) {
-						user.findUserByEmail(email, function (err, profile) {
+						seller.findSellerByEmail(email, function (err, profile) {
 							if(err) {
 								errMessage(res, err);
 							}
@@ -132,9 +133,9 @@ module.exports.registerWithEmail = function(email, password, req, res) {
 									})
 								}
 								else{
-									console.log(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+									console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 									res.writeHead(404, {'Content-Type':'application/json'});
-									res.write(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+									res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 									res.end();
 								}
 							}
@@ -150,7 +151,7 @@ module.exports.registerWithEmail = function(email, password, req, res) {
 module.exports.sendValidationEmail = function(email, req, res) {
     console.log('#Backend_msg module.exports.sendValidationEmail controller called');
     console.log('#Backend_msg email: ' + email);
-	user.findUserByEmail(email, function (err, profile) {
+	seller.findSellerByEmail(email, function (profile, err) {
 		if(err) {
 			errMessage(res, err);
 		}
@@ -186,9 +187,9 @@ module.exports.sendValidationEmail = function(email, req, res) {
 				})
 			}
 			else{
-				console.log(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.writeHead(404, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.end();
 			}
 		}
@@ -196,17 +197,20 @@ module.exports.sendValidationEmail = function(email, req, res) {
 }
 
 function mailBodyValidation(email) {
-	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 600000 });
-	var link = settings.domains.home + '/users/register/getEmailValidated/?validationToken=' + ownAccessToken
+	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 60000000 });
+	console.log('email: ' + email);
+	console.log('ownAccessToken: ' + ownAccessToken);
+	var link = settings.domains.home + '/sellers/register/getEmailValidated/?validationToken=' + ownAccessToken
 
 	var text = 	'Go to this link to activate your account: ' + link
 	return text;
 }
 				
 function mailBodyValidationHTML(email) {
-	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 600000 });
-	var link = settings.domains.home + '/users/register/getEmailValidated/?validationToken=' + ownAccessToken
-
+	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 60000000 });
+	console.log('email: ' + email);
+	console.log('ownAccessToken: ' + ownAccessToken);
+	var link = settings.domains.home + '/sellers/register/getEmailValidated/?validationToken=' + ownAccessToken
 	var html = 	'<!DOCTYPE html><html><body>' + 
 				'<a href="' + link + '">Click here to activate your account.</a>' + 
 				'</body></html>';
@@ -215,13 +219,13 @@ function mailBodyValidationHTML(email) {
 
 module.exports.validateLocalEmail = function(email, req, res) {	
 	console.log('#Backend_msg module.exports.validateLocalEmail controller called');
-	user.findUserByEmail(email, function (err, profile) {
+	seller.findSellerByEmail(email, function (err, profile) {
 		if(err) {
 			errMessage(res, err);
 		}
 		else{
 			if (Object.keys(profile).length == 1 && profile[0].email) {
-				user.validateUserMail(profile[0].userId, function (err, profile) {
+				seller.validateSellerMail(profile[0].sellerId, function (err, profile) {
 					if(err) {
 						errMessage(res, err);
 					}
@@ -234,9 +238,9 @@ module.exports.validateLocalEmail = function(email, req, res) {
 				})
 			}
 			else{
-				console.log(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.writeHead(404, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.end();
 			}
 		}
@@ -250,7 +254,7 @@ module.exports.validateLocalEmail = function(email, req, res) {
 module.exports.resetPasswordInstructions = function(email, req, res) {	
 	console.log('#Backend_msg module.exports.resetPasswordInstructions controller called');
 	console.log('#Backend_msg email:' + email);
-	user.findUserByEmail(email, function (err, profile) {
+	seller.findSellerByEmail(email, function (err, profile){
 		if(err) {
 			errMessage(res, err);
 		}
@@ -260,9 +264,9 @@ module.exports.resetPasswordInstructions = function(email, req, res) {
 				sendMailResetPasswordInstructions(email, res);
 			}
 			else{
-				console.log(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.writeHead(404, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.end();
 			}
 		}
@@ -304,7 +308,7 @@ function sendMailResetPasswordInstructions(email, res) {
 
 function mailBodyResetPassword(email) {
 	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 900 });
-	var link = settings.domains.home + '/users/register/local/getNewPassword?validationToken=' + ownAccessToken
+	var link = settings.domains.home + '/sellers/register/local/getNewPassword?validationToken=' + ownAccessToken
 
 	var text = 	'If you\'ve forgoten your password click this link so we can send you a new password to your email account (available for 5 minutes). ' + link
 	return text;
@@ -312,7 +316,7 @@ function mailBodyResetPassword(email) {
 				
 function mailBodyResetPasswordHTML(email) {
 	var ownAccessToken = jwt.sign({ email:  email}, settings.secretKeys.jwt, { expiresIn: 900 });
-	var link = settings.domains.home + '/users/register/local/getNewPassword?validationToken=' + ownAccessToken
+	var link = settings.domains.home + '/sellers/register/local/getNewPassword?validationToken=' + ownAccessToken
 
 	var html = 	'<!DOCTYPE html><html><body>' + 
 				'<a href="' + link + '">If you\'ve forgoten your password click this link so we can send you a new password to your email account (available for 5 minutes).</a>' + 
@@ -324,14 +328,14 @@ module.exports.setNewPassword = function(email, req, res) {
 	console.log('#Backend_msg module.exports.setNewPassword controller called');
 	console.log('#Backend_msg email: ' + email);
 
-	user.findUserByEmail(email, function (err, profile) {
+	seller.findSellerByEmail(email, function (err, profile) {
 		if(err) {
 			errMessage(res, err);
 		}
 		else{
 			if (Object.keys(profile).length == 1 && profile[0].email) 
 			{
-				user.createNewPassword(profile[0].userId, function (err, info){
+				seller.createNewPassword(profile[0].sellerId, function (err, info) {
 					if(err) {
 						errMessage(res, err);
 					}
@@ -342,9 +346,9 @@ module.exports.setNewPassword = function(email, req, res) {
 				})
 			}
 			else{
-				console.log(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.writeHead(404, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 404, statusDescription: 'User not found or no email registered'} ));
+				res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found or no email registered'} ));
 				res.end();
 			}
 		}
@@ -400,21 +404,27 @@ function mailBodyNewPasswordHTML(newPassword) {
 
 //***********************************************************************
 //************************* Login  LOCAL with email *********************
-// Validates username and password and returns the user ownAccessToken, profile and linked TaxIds
+// Validates sellername and password and returns the seller ownAccessToken, profile and linked TaxIds
 
 module.exports.loginLocal = function(email, password, req, res) {	
 	console.log('#Backend_msg module.exports.loginLocal  controller called');
 	console.log('#Backend_msg email: ' + email);
 	console.log('#Backend_msg email: ' + password);
-	user.findUserByEmail(email, function (err, profile) {
+	seller.findSellerByEmail(email, function (err, profile) {
 		if(err) {
 			errMessage(res, err);
 		}
 		else{
 			if (Object.keys(profile).length == 1) {
 				if(profile[0].emailVerified) {
-					if(bcrypt.compareSync(password, profile[0].hashPassword)) {			
-						returnUser(res, profile[0].userId);
+					if(bcrypt.compareSync(password, profile[0].hashPassword)) {
+								
+							var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+							
+							console.log(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+							res.writeHead(200, {'Content-Type':'application/json'});
+							res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+							res.end();	
 					}
 					else {
 						console.log(JSON.stringify( {status: 401, statusDescription: 'Invalid password'} ));
@@ -432,15 +442,15 @@ module.exports.loginLocal = function(email, password, req, res) {
 			}
 			else{
 				if (Object.keys(profile).length == 0) {
-					console.log(JSON.stringify( {status: 404, statusDescription: 'User not found'} ));
+					console.log(JSON.stringify( {status: 404, statusDescription: 'Seller not found'} ));
 					res.writeHead(404, {'Content-Type':'application/json'});
-					res.write(JSON.stringify( {status: 404, statusDescription: 'User not found'} ));
+					res.write(JSON.stringify( {status: 404, statusDescription: 'Seller not found'} ));
 					res.end();
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'No object or data integration error, more than 1 ibject where there should be 0 or 1. user.findUserByEmail(email, function (profile, err). Mail: ' + email}]))
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'No object or data integration error, more than 1 ibject where there should be 0 or 1. seller.findSellerByEmail(email, function (profile, err). Mail: ' + email}]))
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'No object or data integration error, more than 1 ibject where there should be 0 or 1. user.findUserByEmail(email, function (profile, err). Mail: ' + email}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'No object or data integration error, more than 1 ibject where there should be 0 or 1. seller.findSellerByEmail(email, function (profile, err). Mail: ' + email}]));
 					res.end();
 				}
 			}
@@ -452,11 +462,11 @@ module.exports.loginLocal = function(email, password, req, res) {
 //***********************************************************************
 //************************* Register with Facebook **********************
 
-module.exports.loginFacebook = function(userFacebook, req, res) {
+module.exports.loginFacebook = function(sellerFacebook, req, res) {
 	console.log('#Backend_msg module.exports.loginFacebook controller called');
-	console.log('#Backend_msg userFacebook: ' + userFacebook);
+	console.log('#Backend_msg sellerFacebook: ' + sellerFacebook);
 
-	user.findUserByFacebook(userFacebook.facebookId, function (err, profile) {
+	seller.findSellerByFacebook(sellerFacebook.facebookId, function (err, profile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -464,33 +474,43 @@ module.exports.loginFacebook = function(userFacebook, req, res) {
 		else{
 			if (Object.keys(profile).length == 1) 
 			{
-				returnUser(res, profile[0].userId);
+				var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+
+				console.log(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.writeHead(200, {'Content-Type':'application/json'});
+				res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.end();
 			}
 			else{
 				if(Object.keys(profile).length == 0) {
-					user.createUserWithFacebook(userFacebook, function (err, newUser) {
+					seller.createSellerWithFacebook(sellerFacebook, function (err, newSeller) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByFacebook(userFacebook.facebookId, function (err, profile) {
+							seller.findSellerByFacebook(sellerFacebook.facebookId, function (err, profile) {
 								if(err){
 									errMessage(res, err);
 								}
 								else{
 									//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
 									console.log(profile);
-									returnUser(res, profile[0].userId);
+
+									var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+									console.log(ownAccessToken);
+									res.writeHead(200, {'Content-Type':'application/json'});
+									res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+									res.end();
 								}
 							})
 						}
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByFacebook(userFacebook.facebookId, function (searchedProfile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByFacebook(sellerFacebook.facebookId, function (searchedProfile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByFacebook(userFacebook.facebookId, function (searchedProfile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByFacebook(sellerFacebook.facebookId, function (searchedProfile, err).'}]));
 					res.end();
 				}
 			}
@@ -498,14 +518,14 @@ module.exports.loginFacebook = function(userFacebook, req, res) {
 	})
 }
 
-module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
+module.exports.loginLinkingFacebook = function(sellerFacebook, sellerId, req, res) {
 	console.log('#Backend_msg module.exports.loginFacebook controller called');
-	console.log('#Backend_msg userFacebook: ' + userFacebook);
-	console.log('#Backend_msg userId: ' + userId);
+	console.log('#Backend_msg sellerFacebook: ' + sellerFacebook);
+	console.log('#Backend_msg sellerId: ' + sellerId);
 
-	//Hay que controlar cuando el userId es uno mismo
+	//Hay que controlar cuando el sellerId es uno mismo
 
-	user.findUserByFacebook(userFacebook.facebookId, function (err, previousProfile) {
+	seller.findSellerByFacebook(sellerFacebook.facebookId, function (err, previousProfile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -513,7 +533,7 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 		else{
 			if (Object.keys(previousProfile).length == 1) {
 				// tenemos que comprobar si podemos integrar o no los usuarios en uno solo
-				user.findUserByUserId(userId, function (err, actualProfile) {
+				seller.findSellerBySellerId(sellerId, function (err, actualProfile) {
 					if(err){
 						errMessage(res, err);
 					}
@@ -525,17 +545,21 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 								&&	(previousProfile.twitterId == null || actualProfile.twitterId == null || previousProfile.twitterId == actualProfile.twitterId)
 								) {
 								// MERGING ACCOUNTS IS POSSIBLE
-								user.mergeAccountsByFacebook(userFacebook, actualProfile[0], previousProfile[0], function(err, info){
+								seller.mergeAccountsByFacebook(sellerFacebook, actualProfile[0], previousProfile[0], function(err, info) {
 									if(err){
 										errMessage(res, err);
 									}
 									else {
-										user.findUserByUserId(userId, function (err, profile){
+										seller.findSellerBySellerId(sellerId, function (err, profile) {
 											if(err) {
 												errMessage(res, err);
 											}
 											else{
-												returnUser(res, profile[0].userId);
+												var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+												console.log(ownAccessToken);
+												res.writeHead(200, {'Content-Type':'application/json'});
+												res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+												res.end();
 											}
 										})
 									}
@@ -556,13 +580,13 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 			else{
 				// si no existia se añade en la cuenta y ya esta
 				if(Object.keys(previousProfile).length == 0) {
-					user.addFacebookAccount(userFacebook, userId, function (err, info){
+					seller.addFacebookAccount(sellerFacebook, sellerId, function (err, info) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByFacebook(userFacebook.facebookId, function (err, profile){
+							seller.findSellerByFacebook(sellerFacebook.facebookId, function (err, profile) {
 								if(err){
 									errMessage(res, err);
 								}
@@ -570,12 +594,18 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 									if(Object.keys(profile).length == 1){
 										//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
 										console.log(profile);
-										returnUser(res, profile[0].userId);
+										var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+										console.log(ownAccessToken);
+
+										console.log( JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+										res.writeHead(200, {'Content-Type':'application/json'});
+										res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+										res.end();
 									}
 									else {
-										console.log( JSON.stringify( {status: 400, statusDescription: 'User not found', facebookId : userFacebook.facebookId}) );
+										console.log( JSON.stringify( {status: 400, statusDescription: 'Seller not found', facebookId : sellerFacebook.facebookId}) );
 										res.writeHead(400, {'Content-Type':'application/json'});
-										res.write(JSON.stringify( {status: 400, statusDescription: 'User not found', facebookId : userFacebook.facebookId}) );
+										res.write(JSON.stringify( {status: 400, statusDescription: 'Seller not found', facebookId : sellerFacebook.facebookId}) );
 										res.end();
 									}
 								}
@@ -584,9 +614,9 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByFacebook(userFacebook.facebookId, function (searchedProfile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByFacebook(sellerFacebook.facebookId, function (searchedProfile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByFacebook(userFacebook.facebookId, function (searchedProfile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByFacebook(sellerFacebook.facebookId, function (searchedProfile, err).'}]));
 					res.end();
 				}
 			}
@@ -595,11 +625,11 @@ module.exports.loginLinkingFacebook = function(userFacebook, userId, req, res) {
 }
 
 
-module.exports.loginGoogle = function(userGoogle, req, res) {	
+module.exports.loginGoogle = function(sellerGoogle, req, res) {	
 	console.log('#Backend_msg module.exports.loginGoogle controller called');
-	console.log('#Backend_msg userGoogle: ' + userGoogle);
+	console.log('#Backend_msg sellerGoogle: ' + sellerGoogle);
 
-	user.findUserByGoogle(userGoogle.googleId, function (err, profile){
+	seller.findSellerByGoogle(sellerGoogle.googleId, function (err, profile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -607,32 +637,42 @@ module.exports.loginGoogle = function(userGoogle, req, res) {
 		else{
 			if (Object.keys(profile).length == 1) 
 			{
-				returnUser(res, profile[0].userId);
+				var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+
+				console.log(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.writeHead(200, {'Content-Type':'application/json'});
+				res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.end();
 			}
 			else{
 				if(Object.keys(profile).length == 0) {
-					user.createUserWithGoogle(userGoogle, function (err, newProfile){
+					seller.createSellerWithGoogle(sellerGoogle, function (err, newProfile) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByGoogle(userGoogle.googleId, function (err, profile){
+							seller.findSellerByGoogle(sellerGoogle.googleId, function (err, profile) {
 								if(err){
 									errMessage(res, err);
 								}
 								else{
 									//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
-									returnUser(res, profile[0].userId);
+									var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+
+									console.log(ownAccessToken + '\n'+ profile);
+									res.writeHead(200, {'Content-Type':'application/json'});
+									res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+									res.end();
 								}
 							})
 						}
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByGoogle(userGoogle.googleId, function (profile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByGoogle(sellerGoogle.googleId, function (profile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByGoogle(userGoogle.googleId, function (profile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByGoogle(sellerGoogle.googleId, function (profile, err).'}]));
 					res.end();
 				}
 			}
@@ -640,14 +680,14 @@ module.exports.loginGoogle = function(userGoogle, req, res) {
 	})
 }           
 
-module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
+module.exports.loginLinkingGoogle = function(sellerGoogle, sellerId, req, res) {
 	console.log('#Backend_msg module.exports.loginGoogle controller called');
-	console.log('#Backend_msg userGoogle: ' + userGoogle);
-	console.log('#Backend_msg userId: ' + userId);
+	console.log('#Backend_msg sellerGoogle: ' + sellerGoogle);
+	console.log('#Backend_msg sellerId: ' + sellerId);
 
-	//Hay que controlar cuando el userId es uno mismo
+	//Hay que controlar cuando el sellerId es uno mismo
 
-	user.findUserByGoogle(userGoogle.googleId, function (err, previousProfile) {
+	seller.findSellerByGoogle(sellerGoogle.googleId, function (err, previousProfile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -655,7 +695,7 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 		else{
 			if (Object.keys(previousProfile).length == 1) {
 				// tenemos que comprobar si podemos integrar o no los usuarios en uno solo
-				user.findUserByUserId(userId, function (err, actualProfile) {
+				seller.findSellerBySellerId(sellerId, function (err, actualProfile) {
 					if(err){
 						errMessage(res, err);
 					}
@@ -667,17 +707,21 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 								&&	(previousProfile.twitterId == null || actualProfile.twitterId == null || previousProfile.twitterId == actualProfile.twitterId)
 								) {
 								// MERGING ACCOUNTS IS POSSIBLE
-								user.mergeAccountsByGoogle(userGoogle, actualProfile[0], previousProfile[0], function(err, info) {
+								seller.mergeAccountsByGoogle(sellerGoogle, actualProfile[0], previousProfile[0], function(err, info){
 									if(err){
 										errMessage(res, err);
 									}
 									else {
-										user.findUserByUserId(userId, function (err, profile) {
+										seller.findSellerBySellerId(sellerId, function (err, profile) {
 											if(err) {
 												errMessage(res, err);
 											}
 											else{
-												returnUser(res, profile[0].userId);
+												var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+												console.log(ownAccessToken);
+												res.writeHead(200, {'Content-Type':'application/json'});
+												res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+												res.end();
 											}
 										})
 									}
@@ -698,13 +742,13 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 			else{
 				// si no existia se añade en la cuenta y ya esta
 				if(Object.keys(previousProfile).length == 0) {
-					user.addGoogleAccount(userGoogle, userId, function (err, info){
+					seller.addGoogleAccount(sellerGoogle, sellerId, function (err, info) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByGoogle(userGoogle.googleId, function (err, profile){
+							seller.findSellerByGoogle(sellerGoogle.googleId, function (err, profile){
 								if(err){
 									errMessage(res, err);
 								}
@@ -712,12 +756,18 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 									if(Object.keys(profile).length == 1){
 										//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
 										console.log(profile);
-										returnUser(res, profile[0].userId);
+										var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+										console.log(ownAccessToken);
+
+										console.log( JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+										res.writeHead(200, {'Content-Type':'application/json'});
+										res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+										res.end();
 									}
 									else {
-										console.log( JSON.stringify( {status: 400, statusDescription: 'User not found', googleId : userGoogle.googleId}) );
+										console.log( JSON.stringify( {status: 400, statusDescription: 'Seller not found', googleId : sellerGoogle.googleId}) );
 										res.writeHead(400, {'Content-Type':'application/json'});
-										res.write(JSON.stringify( {status: 400, statusDescription: 'User not found', googleId : userGoogle.googleId}) );
+										res.write(JSON.stringify( {status: 400, statusDescription: 'Seller not found', googleId : sellerGoogle.googleId}) );
 										res.end();
 									}
 								}
@@ -726,9 +776,9 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByGoogle(userGoogle.googleId, function (searchedProfile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByGoogle(sellerGoogle.googleId, function (searchedProfile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByGoogle(userGoogle.googleId, function (searchedProfile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByGoogle(sellerGoogle.googleId, function (searchedProfile, err).'}]));
 					res.end();
 				}
 			}
@@ -736,43 +786,53 @@ module.exports.loginLinkingGoogle = function(userGoogle, userId, req, res) {
 	})
 }
 
-module.exports.loginTwitter = function(userTwitter, req, res) {	
+module.exports.loginTwitter = function(sellerTwitter, req, res) {	
 	console.log('#Backend_msg module.exports.loginTwitter controller called');
-	console.log('#Backend_msg userTwitter: ' + userTwitter);
+	console.log('#Backend_msg sellerTwitter: ' + sellerTwitter);
 
-	user.findUserByTwitter(userTwitter.twitterId, function (err, profile){
+	seller.findSellerByTwitter(sellerTwitter.twitterId, function (err, profile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
 		}
 		else{
 			if (Object.keys(profile).length == 1) {
-				returnUser(res, profile[0].userId);
+				var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+
+				console.log(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.writeHead(200, {'Content-Type':'application/json'});
+				res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+				res.end();
 			}
 			else{
 				if(Object.keys(profile).length == 0) {
-					user.createUserWithTwitter(userTwitter, function (err, newProfile){
+					seller.createSellerWithTwitter(sellerTwitter, function (err, newProfile) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByTwitter(userTwitter.twitterId, function (err, profile){
+							seller.findSellerByTwitter(sellerTwitter.twitterId, function (err, profile) {
 								if(err){
 									errMessage(res, err);
 								}
 								else{
 									//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
-									returnUser(res, profile[0].userId);
+									var ownAccessToken = jwt.sign({ sellerId:  profile[0].sellerId}, settings.secretKeys.jwt);
+
+									console.log(ownAccessToken + '\n'+ profile);
+									res.writeHead(200, {'Content-Type':'application/json'});
+									res.write(JSON.stringify( {status: 200, statusDescription: 'Succeeded', seller: {ownAccessToken, profile}} ));
+									res.end();
 								}
 							})
 						}
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByTwitter(userTwitter.twitterId, function (profile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByTwitter(sellerTwitter.twitterId, function (profile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByTwitter(userTwitter.twitterId, function (profile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByTwitter(sellerTwitter.twitterId, function (profile, err).'}]));
 					res.end();
 				}
 			}
@@ -780,14 +840,14 @@ module.exports.loginTwitter = function(userTwitter, req, res) {
 	})
 }
 
-module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
+module.exports.loginLinkingTwitter = function(sellerTwitter, sellerId, req, res) {
 	console.log('#Backend_msg module.exports.loginTwitter controller called');
-	console.log('#Backend_msg userTwitter: ' + userTwitter);
-	console.log('#Backend_msg userId: ' + userId);
+	console.log('#Backend_msg sellerTwitter: ' + sellerTwitter);
+	console.log('#Backend_msg sellerId: ' + sellerId);
 
-	//Hay que controlar cuando el userId es uno mismo
+	//Hay que controlar cuando el sellerId es uno mismo
 
-	user.findUserByTwitter(userTwitter.twitterId, function (err, previousProfile) {
+	seller.findSellerByTwitter(sellerTwitter.twitterId, function (err, previousProfile) {
 	//COMPROBAMOS QUE EL USUARIO NO EXISTE
 		if(err) {
 			errMessage(res, err);
@@ -795,7 +855,7 @@ module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
 		else{
 			if (Object.keys(previousProfile).length == 1) {
 				// tenemos que comprobar si podemos integrar o no los usuarios en uno solo
-				user.findUserByUserId(userId, function (err, actualProfile) {
+				seller.findSellerBySellerId(sellerId, function (err, actualProfile) {
 					if(err){
 						errMessage(res, err);
 					}
@@ -807,19 +867,12 @@ module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
 								&&	(previousProfile.twitterId == null || actualProfile.twitterId == null || previousProfile.twitterId == actualProfile.twitterId)
 								) {
 								// MERGING ACCOUNTS IS POSSIBLE
-								user.mergeAccountsByTwitter(userTwitter, actualProfile[0], previousProfile[0], function(err, info) {
+								seller.mergeAccountsByTwitter(sellerTwitter, actualProfile[0], previousProfile[0], function(err, info) {
 									if(err){
 										errMessage(res, err);
 									}
 									else {
-										user.findUserByUserId(userId, function (err, profile) {
-											if(err) {
-												errMessage(res, err);
-											}
-											else{
-												returnUser(res, profile[0].userId);
-											}
-										})
+										returnSeller(res, actualProfile[0].sellerId);
 									}
 								})
 							}
@@ -838,25 +891,25 @@ module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
 			else{
 				// si no existia se añade en la cuenta y ya esta
 				if(Object.keys(previousProfile).length == 0) {
-					user.addTwitterAccount(userTwitter, userId, function (err, info) {
+					seller.addTwitterAccount(sellerTwitter, sellerId, function (err, info) {
 						if (err) {
 							errMessage(res, err);
 						}
 						else{
 							//BUSCAMOS EL PERFIL DEL CLIENTE RECIEN CREADO PARA ASOCIARLO AL CIFNIF
-							user.findUserByTwitter(userTwitter.twitterId, function (err, profile){
+							seller.findSellerByTwitter(sellerTwitter.twitterId, function (err, profile) {
 								if(err){
 									errMessage(res, err);
 								}
 								else{
 									if(Object.keys(profile).length == 1){
 										//una vez desscargado el nuevo perfil y registrado correctamente le damos un token de acceso para la sesion
-										returnUser(res, profile[0].userId);
+										returnSeller(res, profile[0].sellerId);
 									}
 									else {
-										console.log( JSON.stringify( {status: 400, statusDescription: 'User not found', twitterId : userTwitter.twitterId}) );
+										console.log( JSON.stringify( {status: 400, statusDescription: 'Seller not found', twitterId : sellerTwitter.twitterId}) );
 										res.writeHead(400, {'Content-Type':'application/json'});
-										res.write(JSON.stringify( {status: 400, statusDescription: 'User not found', twitterId : userTwitter.twitterId}) );
+										res.write(JSON.stringify( {status: 400, statusDescription: 'Seller not found', twitterId : sellerTwitter.twitterId}) );
 										res.end();
 									}
 								}
@@ -865,9 +918,9 @@ module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
 					})	
 				}
 				else{
-					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByTwitter(userTwitter.twitterId, function (searchedProfile, err).'}]));
+					console.log(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByTwitter(sellerTwitter.twitterId, function (searchedProfile, err).'}]));
 					res.writeHead(500, {'Content-Type':'application/json'});
-					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model user.findUserByTwitter(userTwitter.twitterId, function (searchedProfile, err).'}]));
+					res.write(JSON.stringify([{status: 500, statusDescription: '500 Internal Server Error', err : 'data integrity error. more than 1 object or none object found where there should only be one at Model seller.findSellerByTwitter(sellerTwitter.twitterId, function (searchedProfile, err).'}]));
 					res.end();
 				}
 			}
@@ -876,64 +929,36 @@ module.exports.loginLinkingTwitter = function(userTwitter, userId, req, res) {
 }
        
 
-module.exports.refreshOwnAccessToken = function(userId, req, res) {	
+module.exports.refreshOwnAccessToken = function(sellerId, req, res) {	
 	console.log('#Backend_msg module.exports.refreshAccessToken controller called');
-	console.log('#Backend_msg userId: ' + userId);
+	console.log('#Backend_msg sellerId: ' + sellerId);
 
+	returnSeller(res, sellerId);
+}   
 
-	user.findUserByUserId(userId, function (err, profile){
-	//COMPROBAMOS QUE EL USUARIO NO EXISTE
-		if(err) {
-			errMessage(res, err);
-		}
-		else{
-			if (Object.keys(profile).length == 1) //si ya existia hay que comprobar si las cuentas pueden combinarse
-			{
-				returnUser(res, profile[0].userId);
-			}
-			else{
-				console.log(JSON.stringify( {status: 401, statusDescription: 'Invalid token or session has expired, please log in to create a new session.'} ));
-				res.writeHead(401, {'Content-Type':'application/json'});
-				res.write(JSON.stringify( {status: 401, statusDescription: 'Invalid token or session has expired, please log in to create a new session.'} ));
-				res.end();
-			}
-		}
-	})
-}
-
-module.exports.getStripeCustomerAccount = function(userId, req, res) {	
+module.exports.getStripeManagedAccount = function(sellerId, req, res) {	
 	console.log('#Backend_msg module.exports.getStripeCustomerAccount controller called');
-	console.log('#Backend_msg userId: ' + userId);
+	console.log('#Backend_msg sellerId: ' + sellerId);
 
-	// creamos customer en stripe
-	
-			user.findUserByUserId(userId, function (err, profile) {
+			seller.findSellerBySellerId(sellerId, function (err, profile) {
 				if(err){
 					errMessage(res, err);
 				}
 				// UNA VEZ VALIDADO EL PERFIL Y VIENDO QUE NO TIENE USUARIO ASIGNADO LE ASIGNO UNO NUEVO
 				else{				
-					if (Object.keys(profile).length == 1 && !profile[0].stripeCustomer) {
-						stripeOwn.createCustomer(profile[0].userId, profile[0].email, function (err, customer) {
+					if (Object.keys(profile).length == 1 && profile[0].StripeManagedAccount == null) {
+						stripeOwn.createManagedAccount( function (err, managedAccount) {
 							if(err) {
 								errMessage(res, err);
 							}
-							// UNA VEZ CREADO EL CUSTOMER COMPRUEBO EL PERFIL
 							else{
-								user.setUserStripeCustomer(userId, customer.id, function (err, profile) {
+								seller.setSellerStripeManagedAccount(sellerId, managedAccount.id, function (err, profile) {
 									if(err){
 										errMessage(res, err);
 									}
 									// LA CUENTA SE HA LINKADO CORRECTAMENTE HAY QUE DEVOLVER LOS DATOS DEL UDUARIO ACTUALIZADOS
 									else{
-										user.findUserByUserId(userId, function (err, profile) {
-											if(err){
-												errMessage(res, err);
-											}
-											else {
-												returnUser(res, profile[0].userId);
-											}
-										});
+										returnSeller(res, sellerId);
 									}
 								});
 							}
@@ -949,30 +974,3 @@ module.exports.getStripeCustomerAccount = function(userId, req, res) {
 			})
 }
 
-module.exports.addStripeSource = function(userId, source, req, res) {	
-	console.log('#Backend_msg module.exports.addStripeSource controller called');
-	console.log('#Backend_msg userId: ' + userId);
-
-			user.findUserByUserId(userId, function (err, profile) {
-				if(err){
-					errMessage(res, err);
-				}
-				// UNA VEZ VALIDADO EL PERFIL Y VIENDO QUE NO TIENE USUARIO ASIGNADO LE ASIGNO UNO NUEVO
-				else{	
-					if (Object.keys(profile).length == 1 && profile[0].stripeCustomer != null) {
-						var ownAccessToken = jwt.sign({ userId:  profile[0].userId}, settings.secretKeys.jwt , { expiresIn: 1200000 });
-						stripeOwn.addSourceCustomer(profile[0].stripeCustomer, source, function (err, customer) {
-							if(err) {
-								errMessage(res, err);
-							}
-							else{
-								returnUser(res, profile[0].userId);
-							}
-						})
-					}
-					else{
-						returnUser(res, profile[0].userId);
-					}
-				}
-			})
-}
