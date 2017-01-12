@@ -19,7 +19,7 @@ exports.webPORT = {
 }
 
 exports.domains = {
-    home: 'localhost'
+    home: 'www.losbrezos.xyz'
 }
 
 exports.secretKeys = {
