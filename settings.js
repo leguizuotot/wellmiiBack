@@ -70,12 +70,12 @@ exports.mail = {
         transporter :{
             service: 'gmail',
             auth: {
-                user: 'mjaquotot@gmail.com',
-                pass: 'Marian01986'
+                user: '########',
+                pass: '########'
             }
         },
         mailOptions : {
-            'from'      : 'mjaquotot@gmail.com',
+            'from'      : '########',
             'Subject'   : 'Minsait mail verification to activate your account'
         }
     }
