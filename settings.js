@@ -1,9 +1,9 @@
 
 exports.dbConfigMsSQL = {
-	user: 'sqlcsa',
-	password: 'Zaragoza1',
-	server: '40.115.26.178', // You can use 'localhost\\instance' to connect to named instance
-	database: 'musgrave',
+	user: '########',
+	password: '########',
+	server: '########', // You can use 'localhost\\instance' to connect to named instance
+	database: '########',
 		
 	options: {
 		encrypt: true // Use this if you're on Windows Azure
